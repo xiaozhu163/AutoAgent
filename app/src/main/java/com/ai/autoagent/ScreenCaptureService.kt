@@ -166,6 +166,10 @@ class ScreenCaptureService : Service() {
         )
         
         Log.d(TAG, ">>> VirtualDisplay: ${virtualDisplay != null}")
+        
+        // Wait for VirtualDisplay to fully initialize
+        Thread.sleep(1500)
+        Log.d(TAG, ">>> VirtualDisplay initialized")
     }
 
     fun captureScreenBase64(): String? {

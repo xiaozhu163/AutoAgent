@@ -114,6 +114,30 @@ fun MainScreen() {
         
         Spacer(modifier = Modifier.height(16.dp))
         
+        // Overlay toggle control
+        var overlayEnabled by remember { mutableStateOf(OverlayLogService.ENABLE_OVERLAY) }
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            Text("显示日志浮层:", modifier = Modifier.weight(1f))
+            androidx.compose.material3.Switch(
+                checked = overlayEnabled,
+                onCheckedChange = { enabled ->
+                    overlayEnabled = enabled
+                    OverlayLogService.setOverlayEnabled(enabled)
+                    android.widget.Toast.makeText(
+                        context,
+                        if (enabled) "浮层已启用" else "浮层已禁用",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+
         Row {
             Button(onClick = {
                 // Request Media Projection

@@ -30,10 +30,15 @@ class OverlayLogService : Service() {
         private val LOG_UPDATE_TOKEN = Any()  // Token for removing pending log updates
         
         // Set to false to completely disable overlay for debugging
-        const val ENABLE_OVERLAY = false
+        var ENABLE_OVERLAY = false
+            private set
         
         @Volatile
         var instance: OverlayLogService? = null
+        
+        fun setOverlayEnabled(enabled: Boolean) {
+            ENABLE_OVERLAY = enabled
+        }
         
         fun showLog(message: String) {
             if (!ENABLE_OVERLAY) return
