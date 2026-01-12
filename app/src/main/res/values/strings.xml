@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">AutoAgent</string>
+    <string name="accessibility_service_description">AutoAgent AI Assistant Service</string>
+</resources>
