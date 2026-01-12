@@ -177,8 +177,9 @@ class ScreenCaptureService : Service() {
         // Hide overlay temporarily to avoid blocking content
         OverlayLogService.hide()
         
-        // Wait a bit for overlay to disappear
-        Thread.sleep(100)
+        // Wait for overlay to fully disappear - increased to 300ms for safety
+        // This ensures the window manager has removed the view completely
+        Thread.sleep(300)
         
         // Try to acquire latest image with retries
         var image: android.media.Image? = null
@@ -196,11 +197,10 @@ class ScreenCaptureService : Service() {
             }
         }
         
-        // Show overlay again
-        OverlayLogService.show()
-        
         if (image == null) {
             Log.e(TAG, "No image after retries")
+            // Show overlay again before returning
+            OverlayLogService.show()
             return null
         }
         
@@ -229,6 +229,8 @@ class ScreenCaptureService : Service() {
             null
         } finally {
             image.close()
+            // Show overlay again after capture is complete
+            OverlayLogService.show()
         }
     }
 

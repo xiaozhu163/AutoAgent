@@ -27,32 +27,40 @@ class OverlayLogService : Service() {
     companion object {
         private const val TAG = "AutoAgent"
         private const val MAX_LINES = 10
+        private val LOG_UPDATE_TOKEN = Any()  // Token for removing pending log updates
+        
+        // Set to false to completely disable overlay for debugging
+        const val ENABLE_OVERLAY = false
         
         @Volatile
         var instance: OverlayLogService? = null
         
         fun showLog(message: String) {
+            if (!ENABLE_OVERLAY) return
             instance?.appendLog(message)
         }
         
         /**
-         * Temporarily hide overlay (for screenshot capture)
+         * Temporarily hide overlay (for screenshot capture) - SYNCHRONOUS
          */
         fun hide() {
-            instance?.hideOverlay()
+            if (!ENABLE_OVERLAY) return
+            instance?.hideOverlaySync()
         }
         
         /**
-         * Show overlay again after hiding
+         * Show overlay again after hiding - SYNCHRONOUS
          */
         fun show() {
-            instance?.showOverlay()
+            if (!ENABLE_OVERLAY) return
+            instance?.showOverlaySync()
         }
         
         /**
          * Show completion dialog with task result
          */
         fun showCompletion(task: String, message: String) {
+            if (!ENABLE_OVERLAY) return
             instance?.showCompletionDialog(task, message)
         }
     }
@@ -134,6 +142,42 @@ class OverlayLogService : Service() {
     private fun hideOverlay() {
         mainHandler.post {
             hideOverlayInternal()
+        }
+    }
+    
+    /**
+     * Synchronous hide - blocks until overlay is actually hidden
+     */
+    private fun hideOverlaySync() {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            // Already on main thread, hide directly
+            hideOverlayInternal()
+        } else {
+            // Not on main thread, use CountDownLatch to wait
+            val latch = java.util.concurrent.CountDownLatch(1)
+            mainHandler.post {
+                hideOverlayInternal()
+                latch.countDown()
+            }
+            latch.await()
+        }
+    }
+    
+    /**
+     * Synchronous show - blocks until overlay is actually shown
+     */
+    private fun showOverlaySync() {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            // Already on main thread, show directly
+            showOverlayInternal()
+        } else {
+            // Not on main thread, use CountDownLatch to wait
+            val latch = java.util.concurrent.CountDownLatch(1)
+            mainHandler.post {
+                showOverlayInternal()
+                latch.countDown()
+            }
+            latch.await()
         }
     }
     
@@ -235,9 +279,18 @@ class OverlayLogService : Service() {
             logLines.removeAt(0)
         }
         
-        // Update UI on main thread
-        mainHandler.post {
-            logTextView?.text = logLines.joinToString("\n")
+        // Update UI immediately on main thread
+        val updateText = logLines.joinToString("\n")
+        
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            // Already on main thread, update immediately
+            logTextView?.text = updateText
+        } else {
+            // Not on main thread, remove pending updates and post new one
+            mainHandler.removeCallbacksAndMessages(LOG_UPDATE_TOKEN)
+            mainHandler.postAtFrontOfQueue {
+                logTextView?.text = updateText
+            }
         }
     }
     
