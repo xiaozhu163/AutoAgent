@@ -174,6 +174,12 @@ class ScreenCaptureService : Service() {
             return null
         }
         
+        // Hide overlay temporarily to avoid blocking content
+        OverlayLogService.hide()
+        
+        // Wait a bit for overlay to disappear
+        Thread.sleep(100)
+        
         // Try to acquire latest image with retries
         var image: android.media.Image? = null
         for (attempt in 1..10) {
@@ -189,6 +195,9 @@ class ScreenCaptureService : Service() {
                 Thread.sleep(50)
             }
         }
+        
+        // Show overlay again
+        OverlayLogService.show()
         
         if (image == null) {
             Log.e(TAG, "No image after retries")

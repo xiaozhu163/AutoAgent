@@ -232,17 +232,26 @@ fun MainScreen() {
                     if (isRunning) {
                         isRunning = false
                         logs += "Stopped by user.\n"
+                        // Stop overlay service
+                        context.stopService(Intent(context, OverlayLogService::class.java))
                     } else {
                         isRunning = true
+                        // Start overlay service
+                        context.startService(Intent(context, OverlayLogService::class.java))
+                        
                         scope.launch(Dispatchers.IO) {
                             runAgent(context, apiKey, taskPrompt) { log ->
                                 scope.launch(Dispatchers.Main) {
                                     logs += "$log\n"
+                                    // Also send to overlay
+                                    OverlayLogService.showLog(log)
                                 }
                             }
                             withContext(Dispatchers.Main) {
                                 isRunning = false
                                 logs += "Task Finished.\n"
+                                // Stop overlay service
+                                context.stopService(Intent(context, OverlayLogService::class.java))
                             }
                         }
                     }
@@ -385,7 +394,10 @@ suspend fun runAgent(context: Context, apiKey: String, task: String, logCallback
         
         // 11. Check if finished
         if (result.shouldFinish) {
-            logCallback("✅ Task completed: ${result.message ?: "Done"}")
+            val completionMessage = result.message ?: "Done"
+            logCallback("✅ Task completed: $completionMessage")
+            // Show completion dialog
+            OverlayLogService.showCompletion(task, completionMessage)
             break
         }
         
@@ -395,6 +407,7 @@ suspend fun runAgent(context: Context, apiKey: String, task: String, logCallback
     
     if (step >= maxSteps) {
         logCallback("⚠️ Max steps reached")
+        OverlayLogService.showCompletion(task, "已达到最大步数限制")
     }
     
     logCallback("Agent finished.")
